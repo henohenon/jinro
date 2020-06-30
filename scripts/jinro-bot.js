@@ -17,6 +17,33 @@
 //・俺だけ特別扱い職業
 
 /*** オブジェクトとか配列とか ***/
+
+let help_message=
+"ゲームの流れ\n"
++"・１、(ゲームの作成)まず、「人狼bot game_create メンバーの表示名,メンバーの表示名,メンバーの表示名... ルームの名前」と言って、ルームを作ってください。(スレッド推奨)\n"
++"・２、(職業確認)次に、全員人狼botとのDMで、「st」と言ってください。(事前に人狼botとのDMを建てることをお勧めします)\n"
++"・３、(初夜)続いて、占い師は、botとのDMで「jn(数字)」(例：jn1)と言ってください。\n"
++"・４、(朝)そして、全員botとのDMで「jt(数字)」(例：j52)と言って、投票してください。\n"
++"・５、(夜)そのあと、特殊な職業の人はbotとのDMで「jn(数字)」(例：jn4)のように言ってください。\n"
++"・４、５を繰り返します。\n"
++"コマンド一覧\n"
++"・「人狼bot game_create メンバーの表示名,メンバーの表示名,メンバーの表示名... ルームの名前」\n"
++"　　　...ルームを建てるコマンド、普通のチャンネルで行う、スレッド推奨\n"
++"・「st」\n"
++"　　　...職業確認コマンド、のくせに一回しか使えません、DMで行う\n"
++"・「jn(数字)」\n"
++"　　　...夜のターンに人狼、占い師、狩人が対象を設定するコマンド、DM内で行う、例：jn1\n"
++"・「jt(数字)」\n"
++"　　　...投票時の対象を設定するコマンド、DM内で行う、例：jt3\n"
++"・「人狼bot finish」\n"
++"　　　...ゲームを強制終了させるコマンド、どこでもokただし、stで、botに認証されたプレイヤーしか使えません、死んでもダメです。\n"
++"・「人狼bot help」\n"
++"　　　...この文章を出すヘルプコマンド、\n"
++ "注意点\n"
++"・このbotは、多人数プレイには向いていません。4〜6人ぐらいが最も楽しめると思います。\n"
++"・また、botのコメント数には限界がありますので、5ルームとか建てるのは、やめてください。\n"
++"・ルームを建てるときは、メンションではなく、表示名でお願いします。また、コピペだとリンクと太文字がついてしまうので、リンクを削除して太文字を解除(「,」とかにリンクが残らないか注意です)するか、一つ一つ入力してください。\n"
++"※これバグじゃね？みたいなのがあれば、お手数ですが、作者へのDMか何かで知らせていただけるとありがたいです。(「キタ」ぐらいで検索して、へのへのもへじっぽいアイコンのやつがいれば、だいたいそいつです。)"
 function memb_ronu()//all_memb_rinuの中身
 {
     room_name:"";//ルームの名前
@@ -28,96 +55,113 @@ function each_info()//メンバーの情報というかオブジェクト...
 {
     compreat:1;//やらなあかんこと変数
     //0=何もなし,1=start送って,2=夜,3=投票
-    msg_dm:undefined;//dmのmsg？
+    msg_dm:null;//dmのmsg？
     touhyo:-1;//投票する変数
     each_name:"";//名前
     each_jobs_numb:0;//役割のナンバー
 }    
 function room()//roomオブジェクト
 {
-    msg:undefined;//スタートしたとこのmsg
+    msg:null;//スタートしたとこのmsg
     name:"";//ルームの名前(実はなくてもいい)
     memb_info:new Array();//ルームのメンバー情報の配列:each_info
     killed:0;//人狼の指定した人(？)というか被害者
     saved:-1;//騎士の守る人
     isfin:0;
+    turn:0;
 }
-var jobs=["村人","人狼","占い師","狩人","狂人"];//職業(文字)
-var jobs_setu=//その職業の説明
+let jobs=["村人","人狼","占い師","狩人","狂人"];//職業(文字)
+let jobs_setu=//その職業の説明
 ["村人側の役職です。\n特殊能力などはありません。\n手元にある情報を元に人狼は誰か推理しましょう。",
 "人狼側の役職です。\n夜のターンで、誰か一人を襲撃して殺します。\n人狼は人間に、1対1では勝てるものの、相手が村人2名だと勝てません。\nよって、村人に人狼だと悟られないようにうまく立ち回り、\n人が残り一人になるまで夜のターンでこっそり人を殺していきましょう",
 "村人側の役職です。\n夜のターンで、一人占って人狼かどうかを知ることができます。\n人狼か、そうでないかしか占えないので、\n占い先が役職持ち(狂人や騎士)であっても、村人としかわかりません。",
 "村人側の役職です。\n夜のターンで、誰か一人を人狼の襲撃から守ることができます。\n狩人が守っている人を人狼が襲撃した場合、襲撃は失敗し、翌日犠牲者は発生しません。",
 "人狼側の役職です。\n素性は村人ですが、人狼に加担する人です。\n人狼サイドが勝利することで、自分が死んでも狂人も勝利となります。\n占い師に占われても村人と判断されます。だれが人狼なのかを知ることはできません。"];
-var all_memb_ronu=new Array();//ありとあらゆるルームに所属する人の情報とどこのルームに入ってるかが入ってる:memb_ronu
-var all_name=new Array();//全員の名前だけの入れる:string
-var rooms=new Array();//ルームシステムうまくいく保証がなさすぎてやばい:room
+let all_memb_ronu=new Array();//ありとあらゆるルームに所属する人の情報とどこのルームに入ってるかが入ってる:memb_ronu
+let all_name=new Array();//全員の名前だけの入れる:string
+let rooms=new Array();//ルームシステムうまくいく保証がなさすぎてやばい:room
+let tohyo_logs=new Array();
 
 
 /*** この辺はスタートから一連の処理 ***/
 
 function start(memb_name,room_name,msg)//メンバーの名前変数,スタートのとこのmsg
 {
-    let jobs=set_jobs(memb_name.length);//ここで職業の数、種類を決める
-    /*人数によって変えなきゃ*/
-    let this_room=make_game(memb_name,jobs,room_name,msg);;//ゲーム(ルーム？)を作成&ルームをもらってきてる、わかりづらいけど...
-    /* どのルームか判定をつけなさいな */
+    let job=set_jobs(memb_name.length);//ここで職業の数、種類を決める
+    let job_names=new Array();
+    for(let i=0;i<job.length;i++)
+    {
+        job_names.push(jobs[job[i]]);
+    }
+    let this_room=make_game(memb_name,job,room_name,msg);;//ゲーム(ルーム？)を作成&ルームをもらってきてる、わかりづらいけど...
+    /** これは、テスト以外なら消して、初期化でやること **/
     for(let i=0;i<this_room.memb_info.length;i++)
     {
+        /*
         if(this_room.memb_info[i].each_name!=="たむら")
         {
-            this_room.memb_info[i].compreat=0;//初期化で1にしてるので、俺以外を0にする。
-        }
+            */
+            this_room.memb_info[i].compreat=1;//初期化で1にしてるので、俺以外を0にする。←ここを初期化で全部やる
+        //}
     }
-    logs(this_room.msg,"では、"+memb_name.join("さん、")+"さんの"+memb_name.length+"人でゲーム:「"+room_name+"」を始めます。\n全員人狼botとのDMを開き、「start」と言ってください");
-    //このfor文はテスト用です
+    logs(this_room.msg,"では、"+memb_name.join("さん、")+"さんの"+memb_name.length
+    +"人でゲーム:「"+room_name+"」を始めます。\n全員人狼botとのDMを開き、2分以内に「st」と言ってください\n編成は、「"+job_names.join("、")+"」です");//はじめまっせーって
+    for (let i=0; i<job.length;i++)
+    {
+        tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].each_name+"＝"+jobs[job[i]]+"、"+i;
+    }
+    tohyo_logs[this_room.memb_info[0].room_numb]+="\n初夜：   "
     let time=24;//2分ぐらい待たせるつもり
     var timeout_id=
-    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,0),5000);
+    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,0),5000);//5秒＊time秒まつ、5秒毎に、投票とかが終わったか確認
     //ゲーム開始！
     return;
-    //「gamestart」って言われてやる感じのスタート関数
 }
 
-//最初の夜は占い師だけなんかさせる
+//最初の夜は占い師だけなんかさせるので特殊...
 function first_yoru(this_room)//ルーム
 {
-    logs(this_room.msg,"最初の夜が来ました\n書き込みをやめてください。占い師の人は、人狼botとのDMで「jn(選んだ人の数字)」と言って誰か一人占ってください。");
-    /* consoleの中身sendに移す */
-    let targets=new Array();//メンバーの配列
+    logs(this_room.msg,"最初の夜が来ました\n書き込みをやめてください。占い師の人は、人狼botとのDMで3分以内に「jn(選んだ人の数字)」と言って誰か一人占ってください。");//アナウンス
+    let targets=new Array();//占う対象とかを入れる配列
     for(let num=0;num<this_room.memb_info.length;num++)
     {
-         targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//中身を入れてる
+         targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//数字：名前を入れてる
     }
-    for(let i=0;i<this_room.memb_info.length;i++)//特別な役割を持ってたらやることやってな変数を1に
+    for(let i=0;i<this_room.memb_info.length;i++)//メンバーに夜のアナウンス
     {
-        if(this_room.memb_info[i].each_jobs_numb===2)
+        if(this_room.memb_info[i].each_jobs_numb===2)//
         {
+            /** ここテスト以外だったらif文と、else、elseの中身消す **/
+            /*
             if(this_room.memb_info[i].each_name==="たむら")
             {
-                this_room.memb_info[i].compreat=2; //人狼だったら2に(今の処理がどこか判別用)
-            }
+            */
+                this_room.memb_info[i].compreat=2; //占い師だったら、夜の動きをしてねっていう2に
+            /*}
             else
             {
                 this_room.memb_info[i].compreat=0;
             }
+            */
             this_room.memb_info[i].msg_dm.send("夜になりました。\n占う人を選んで「jn(選んだ人の数字)」と言ってください。\n"+targets.join("\n"));//DMに誰殺す？って聞いてる
         }
         else //その他は全員！
         {
             //if(this_room.memb_info[i].each_name==="キタムラ")
-            this_room.memb_info[i].compreat=0;//やることない
+            this_room.memb_info[i].compreat=0;//なんもすることないよーって
             this_room.memb_info[i].msg_dm.send("夜になりました\n"+"しばらくお待ちください、書き込みはやめましょう。");//DMにちょっと待っててねっていう
             
         }
     }
-    //このfor文はテスト用です、キタムラかどうかじゃなくてjobが1かで判別すること
-    let time=36;//2分ぐらい待つつもり
+    let time=36;//3分ぐらい待つつもり
     var timeout_id=
-    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,1),5000);
-    //秒数を入れれば、三回その秒数待ってくれる関数。
+    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,1),5000);//5秒＊time秒まつ、5秒毎に、投票とかが終わったか確認
+    return;
 }
 
+//誰々を占うっていうまでまつ
+
+//初めての朝なので、アナウンスが特殊
 function first_asa(this_room)//ルーム
 {
     //なんとなく演出っぽくしたくて分けてますが、別に待ち時間がないので特に意味ないです。
@@ -125,116 +169,119 @@ function first_asa(this_room)//ルーム
     let taisyos=new Array();//投票の対象者配列の元
     for(let i=0;i<this_room.memb_info.length;i++)
     {
+        /** テストでなければif文消す **/
+        /*
          if(this_room.memb_info[i].each_name==="たむら")
         {
+            */
             this_room.memb_info[i].compreat=3;//投票した？
-        }
-        this_room.memb_info[i].tohyo=1;
-            /* forだけ本番(？)の時は消す、中身残せよ */
-            taisyos.push((i+1)+":"+this_room.memb_info[i].each_name);//番号:名前,の配列を作る
+        //}
+        /** テストでなければこれは-1に **/
+        this_room.memb_info[i].tohyo=-1;
+        taisyos.push((i+1)+":"+this_room.memb_info[i].each_name);//番号:名前,の配列を作る
     }
-    logs(this_room.msg,"朝になりました。どうやら、この村には狼が潜んでいるようです。\n話し合いの後、人狼だと思う人一人に人狼botとのDMで、「jt(選んだ人の数字)」と言って投票してください。一番票が集まった人は吊るされます。\n投票する時間も含めて、話し合いの時間は**分です。");
-    for(let i=0;i<this_room.memb_info.length;i++)
+    logs(this_room.msg,"朝になりました。どうやら、この村には狼が潜んでいるようです。\n話し合いの後、人狼だと思う人一人に人狼botとのDMで、「jt(選んだ人の数字)」と言って投票してください。一番票が集まった人は吊るされます。\n投票する時間も含めて、話し合いの時間は7分30秒です。");//中途半端な時間...
+    for(let i=0;i<this_room.memb_info.length;i++)//全員分のDMに、投票してね。っていう
     {
-        this_room.memb_info[i].msg_dm.send("朝になりました\n話し合いが終わったら、投票する人を選んで「jt(選んだ人の数字)」と言ってください。\n一番投票数の多かった人は吊るされます。\n"+taisyos.join("\n"));
+        this_room.memb_info[i].msg_dm.send("朝になりました\n話し合いが終わったら、投票する人を選んで「jt(選んだ人の数字)」と言ってください。\n一番投票数の多かった人は吊るされます。\n"+taisyos.join("\n"));//言ってる
     }
     let time=90;//5分ぐらい待つんやで
     var timeout_id=
-    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,2),5000);
+    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,2),5000);//5*time秒待つ的な
     return;
 }
 
 //で、いったん全員からDMが送られるのを待ちます。(koredo関数で)
 
-//夜の関数、そのまんま
+//普通の夜の関数、そのまんま
 function start_yoru(this_room)//ルーム
 {
-    logs(this_room.msg,"夜が来ました\n書き込みをやめてください。\n人狼などの特殊な役割の人は人狼botとのDMで、「jn(対象にわりふられた数字)」のように言ってください。");
-    /* consoleの中身sendに移す */
+    logs(this_room.msg,"夜が来ました\n書き込みをやめてください。\n人狼などの特殊な役割の人は人狼botとのDMで3分以内に、「jn(選んだ人の数字)」のように言ってください。");
+    let targets=new Array();//メンバーと数字、対象みたいな
+    for(let num=0;num<this_room.memb_info.length;num++)
+    {
+        targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//中身を入れてる
+    }
     for(let i=0;i<this_room.memb_info.length;i++)//特別な役割を持ってたらやることやってな変数を1に
     {
         if(this_room.memb_info[i].each_jobs_numb===0)//平民かどうか
         {
+            /** テストじゃなきゃこのif文も消す **/
+            /*
             if(this_room.memb_info[i].each_name==="たむら")
-            this_room.memb_info[i].compreat=0;//やることない
+            {
+                */
+                this_room.memb_info[i].compreat=0;//やることない
+            //}
             this_room.memb_info[i].msg_dm.send("しばらくお待ちください。");//DMにちょっと待っててねっていう
             
         }
-        else if(this_room.memb_info[i].each_jobs_numb===1)
+        else if(this_room.memb_info[i].each_jobs_numb===1)//人狼なら
         {
+            /** テストじゃなきゃこのif文も消す **/
+            /*
             if(this_room.memb_info[i].each_name==="たむら")
             {
-                this_room.memb_info[i].compreat=2; //人狼だったら2に(今の処理がどこか判別用)
-            }
+                */
+                this_room.memb_info[i].compreat=2; //夜のアレしてねってやつ
+            /*}
             else
             {
                 this_room.memb_info[i].compreat=0;
             }
-            let targets=new Array();//メンバーの配列
-            for(let num=0;num<this_room.memb_info.length;num++)
-            {
-                targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//中身を入れてる
-            }
-            this_room.memb_info[i].msg_dm.send("夜になりました\n襲撃する人を選んでください\n"+targets.join("\n"));//DMに誰殺す？って聞いてる
+              */
+            this_room.memb_info[i].msg_dm.send("夜になりました\n襲撃する人を「jn(選んだ人の数字)」のように言って選んでください\n"+targets.join("\n"));//DMに誰殺す？って聞いてる
         }
-        else if(this_room.memb_info[i].each_jobs_numb===2)
+        else if(this_room.memb_info[i].each_jobs_numb===2)//占い師なら
         {
-            if(this_room.memb_info[i].each_name==="たむら")
+            /** テストじゃなきゃこのif文も消す **/
+            /*if(this_room.memb_info[i].each_name==="たむら")
             {
-        
-                this_room.memb_info[i].compreat=2; //それ以外(今は人狼したないから困難になっちゃってる)
-            }
+                */
+                this_room.memb_info[i].compreat=2; //占ってねー
+            /*}
             else
             {
-                this_room.memb_info[i].compreat=0; //それ以外(今は人狼したないから困難になっちゃってる)
+                this_room.memb_info[i].compreat=0; 
             }
-            let targets=new Array();//メンバーの配列
-            for(let num=0;num<this_room.memb_info.length;num++)
-            {
-                targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//中身を入れてる
-            }
-            this_room.memb_info[i].msg_dm.send("夜になりました\n占う人を選んでください\n"+targets.join("\n"));//DMに誰占う？って聞いてる
+            */
+            this_room.memb_info[i].msg_dm.send("夜になりました\n占う人を「jn(選んだ人の数字)」のように言って選んでください\n"+targets.join("\n"));//DMに誰占う？って聞いてる
         }
-        else if(this_room.memb_info[i].each_jobs_numb===3)
+        else if(this_room.memb_info[i].each_jobs_numb===3)//騎士ならば
         {
+            /** テストじゃなきゃこのif文も消す **/
+            /*
             if(this_room.memb_info[i].each_name==="たむら")
             {
-        
-                this_room.memb_info[i].compreat=2; //それ以外(今は人狼したないから困難になっちゃってる)
-            }
+                */
+                this_room.memb_info[i].compreat=2; //誰を守るか選んどいてぇ〜って
+            /*}
             else
             {
-                this_room.memb_info[i].compreat=0; //それ以外(今は人狼したないから困難になっちゃってる)
-            }
-            let targets=new Array();//メンバーの配列
-            for(let num=0;num<this_room.memb_info.length;num++)
-            {
-                targets.push((num+1) + ":"+this_room.memb_info[num].each_name);//中身を入れてる
-            }
-            this_room.memb_info[i].msg_dm.send("夜になりました\n守る人を選んでください\n"+targets.join("\n"));//DMに誰占う？って聞いてる
+                this_room.memb_info[i].compreat=0; 
+            }*/
+            this_room.memb_info[i].msg_dm.send("夜になりました\n守る人を「jn(選んだ人の数字)」のように言って選んでください\n"+targets.join("\n"));//DMに誰守る？って聞いてる
         }}
-    //このfor文はテスト用です、キタムラかどうかじゃなくてjobが1かで判別すること
-    let time=24;//2分ぐらい待つつもり
+    let time=36;//2分ぐらい待つつもり
     var timeout_id=
     setTimeout(koredo.bind(this,0,this_room,time,timeout_id,4),5000);
     //秒数を入れれば、三回その秒数待ってくれる関数。
 }
-
 //で、また人狼とか占い師とかから回答が来るのを待ちます。
 
 //朝の処理
 function asa(this_room)//ルーム
 {
     //なんとなく演出っぽくしたくて分けてますが、別に待ち時間がないので特に意味ないです。
-    logs(this_room.msg,"朝になりました。\n今日の犠牲者は..");
+    logs(this_room.msg,"朝になりました。\n今日の犠牲者は...");
     //ここで、犠牲者がいるのか、いるとしたら誰かの判定＆告知(？)です。
-    if(this_room.killed===this_room.saved)
+    if(this_room.killed===this_room.saved)//人狼が襲った人を騎士が守ってるか
     {
-        logs(this_room.msg,"いません。");
+        logs(this_room.msg,"いません。");//守ってたら
     }
     else
     {
-        logs(this_room.msg,this_room.memb_info[parseInt(this_room.killed, 10)].each_name+"さんです。");
+        logs(this_room.msg,this_room.memb_info[parseInt(this_room.killed, 10)].each_name+"さんです。");//死んじゃった...って
         if(Death_hante(this_room,this_room.killed)===false)//一人殺す＆ゲームが終わるのかの判定
         {
             finish(this_room);
@@ -244,22 +291,25 @@ function asa(this_room)//ルーム
     let taisyos=new Array();//投票の対象者配列の元
     for(let i=0;i<this_room.memb_info.length;i++)
     {
+        /** テストじゃなきゃこのif文を消す **/
+        /*
         if(this_room.memb_info[i].each_name==="たむら")
         {
+            */
             this_room.memb_info[i].compreat=3;//投票した？
-        }
-        this_room.memb_info[i].tohyo=1;
-        /* forだけ本番(？)の時は消す、中身残せよ */
+        //}
+        //こいつも-1
+        this_room.memb_info[i].tohyo=-1;
         taisyos.push((i+1)+":"+this_room.memb_info[i].each_name);//番号:名前,の配列を作る
     }
     logs(this_room.msg,"それでは、話し合いを始めてください。\n投票する人が決まったら人狼botとのDMで「jt(選んだ人数字)」と言ってください。");
     for(let i=0;i<this_room.memb_info.length;i++)
     {
-        this_room.memb_info[i].msg_dm.send("朝になりました\n話し合いが終わったら、投票する人を「jt(選んだ人の数字)」選んでください。一番投票数の多かった人は処刑されます。\n"+taisyos.join("\n"));
+        this_room.memb_info[i].msg_dm.send("朝になりました\n話し合いが終わったら、投票する人を「jt(選んだ人の数字)」選んでください。一番投票数の多かった人は処刑されます。\n投票する時間も含めて、話し合いの時間は7分30秒です。\n"+taisyos.join("\n"));
     }
-    let time=60;//5分ぐらい待つんやで
+    let time=90;//7.5分ぐらい待つんやで
     var timeout_id=
-    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,2),5000);
+    setTimeout(koredo.bind(this,0,this_room,time,timeout_id,2),5000);//5秒*90回まつ
     return;
 }
 
@@ -271,29 +321,34 @@ function tohyo(this_room)//ルーム
     let mems=new Array;//メンバーの投票数が入ってるやつです
     let No_one=0;//こっちは、一番投票数が多い人を入れるやつ
     let No_tohyo=0;//これは、一番投票数が多い人の投票数
-    for(let i=0;i<this_room.memb_info.length;i++)//多分もっとスマートな初期化法があるな...
+    for(let i=0;i<this_room.memb_info.length;i++)//多分もっとスマートな初期化法があるかな...
     {
         mems.push(0);
     }
     for(let i=0;i<this_room.memb_info.length;i++)//実際に集計
     {
-        mems[this_room.memb_info[i].touhyo]+=1;//集計
-        if(No_tohyo<mems[this_room.memb_info[i].touhyo])//ランクのやつを上手い具合にしてる
+        if(this_room.memb_info[i].touhyo>-1)
         {
-            No_one=this_room.memb_info[i].tohyo;
-            No_tohyo=mems[this_room.memb_info[i].touhyo];
-        }   
-        this_room.memb_info[i].tohyo=-1;
+            mems[this_room.memb_info[i].touhyo]+=1;//集計
+            tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].touhyo+"      ";
+            if(No_tohyo<mems[this_room.memb_info[i].touhyo])//ランクのやつを上手い具合にしてる
+            {
+                No_one=this_room.memb_info[i].touhyo;//なんばーわん
+                No_tohyo=mems[this_room.memb_info[i].touhyo];//なんばーわんの投票数
+            }   
+            this_room.memb_info[i].tohyo=-1;//ここでも-1にしてるのか...無駄だな
+        }
     }//同数だった場合？知らないよそんなの(まぁ調べてそこまで厳正なルールなさそうだったから別にいいでしょう)
     logs(this_room.msg,"今日吊るされたのは...");
     logs(this_room.msg,this_room.memb_info[No_one].each_name+"さんです。");
     if(Death_hante(this_room,No_one)===true)
     {
+        tohyo_logs[this_room.memb_info[0].room_numb]+="\n"+(this_room.turn+1)+"夜：　";
         start_yoru(this_room);//ゲームが終わらないなら、また夜に戻ります。
     }
     else
     {
-        finish(this_room);
+        finish(this_room);//終わらせる〜
     }
     return;
 }
@@ -303,28 +358,26 @@ function tohyo(this_room)//ルーム
 /*** 何秒待つ系の関数 ***/
 
 //5秒ごとに投票とかしたか判定をtime回繰り返し、time回に近づくと、終了するよって警告してくれる関数
-//for文だとうまく行かないので、配列の中で自分何回かを呼ぶ感じに
+//for文だとうまく行かないので、自分何回かを呼ぶ感じに
 function koredo(num,this_room,time,id,next_num)//iみたいな感じ何回繰り返したか,ルーム,何回繰り返すか,次にどの関数を実行するか(数値)
-//改善の余地あり、あと何秒通知が早すぎ＆長くした時にめんどい
-//num=何回待ったか何秒で終了用。this_room=ルームねそのまんまくれる感じ。time=何秒まつか。id=いるかちょっと怪しいけど終了させるやつ。next_num=次のfunction,0=yoru;1=asa;
 {
     let boolean=iscompret(this_room);//ここで全員投票したかとかを判定
-    if(boolean.length===0)
+    if(boolean.length===0)//全員終わったなら
     {
         next_func(this_room,next_num);//次の関数を実行
         clearTimeout(id); //念のため、待つ関数をクリア
         return;
     }
-    else if(this_room.isfin===1)
+    else if(this_room.isfin===1)//finish ルーム名で強制的に終了された時
     {
         finish(this_room);
         return;
     }
     else
     {
-        if(num===time)//もし、time回待ったなら、終了させる。荒らし、とかミスとかの対策
+        if(num===time)//もし、time回待ったなら、終了させる。
         {
-            if(this_room.memb_info[boolean[0]].compreat===3&&boolean.length<=this_room.memb_info.length)
+            if(this_room.memb_info[boolean[0]].compreat===3&&boolean.length<=this_room.memb_info.length)//投票の場合、数が足りなくても強制
             {
                 next_func(this_room,next_num);//次の関数を実行
                 clearTimeout(id); //念のため、待つ関数をクリア
@@ -333,29 +386,30 @@ function koredo(num,this_room,time,id,next_num)//iみたいな感じ何回繰り
             else
             {
                 finish(this_room);//終わらせる関数
+                clearTimeout(id); //一応ね、クリア
                 return;
             }
         }
         else
         {
-            if((Math.round(time/10)*6)===num||(Math.round(time/10)*9)===num||time-2===num)//八割、9.5割、最後の一回で警告
+            if((Math.round(time/10)*6)===num||(Math.round(time/10)*9)===num||time-2===num)//6割、9割、最後の2回で警告
             {
-                if(this_room.memb_info[boolean[0]].compreat===1)
+                if(this_room.memb_info[boolean[0]].compreat===1)//一番最初の時だけは、DMわかんないから、game_createって言われたとこに、できてない人を書く
                 {
-                    let taget=[];
+                    let taget=[];//ターゲットではないな
                     for(let i=0;i<boolean.length;i++)
                     {
                         taget.push(this_room.memb_info[boolean[i]].each_name);
                     }
-                    logs(this_room.msg,taget.join("さん、")+"さんが、まだ回答を送っていません。");//警告文    
+                    logs(this_room.msg,taget.join("さん、")+"さんが、まだ回答を送っていません。");//誰が送ってないか   
                     logs(this_room.msg,"あと、"+(5*(time-(num)))+"秒以内に必要な回答が揃わない場合ゲーム「"+this_room.name+"」は終了となります。");//警告文
                 }
-                else if(next_num===2)
+                else if(next_num===2)//強制集計をつけてしまったせいで分ける必要が...
                 {
                     logs(this_room.msg,"あと、"+(5*(time-(num)))+"秒以内に必要な回答が揃わない場合、回答されたものだけで集計します。");//警告文
                     for(let i=0;i<boolean.length;i++)
                     {
-                        logs(this_room.memb_info[boolean[i]].msg_dm,"まだあなたは回答を送っていません。");//警告文    
+                        logs(this_room.memb_info[boolean[i]].msg_dm,"まだあなたは回答を送っていません。");//DMへ警告文    
                     }
                 }
                 else
@@ -363,12 +417,12 @@ function koredo(num,this_room,time,id,next_num)//iみたいな感じ何回繰り
                     logs(this_room.msg,"あと、"+(5*(time-(num)))+"秒以内に必要な回答が揃わない場合ゲーム「"+this_room.name+"」は終了となります。");//警告文
                     for(let i=0;i<boolean.length;i++)
                     {
-                        logs(this_room.memb_info[boolean[i]].msg_dm,"まだあなたは回答を送っていません。");//警告文    
+                        logs(this_room.memb_info[boolean[i]].msg_dm,"まだあなたは回答を送っていません。");//DMへの警告文    
                     }
                 }
             }
             num++;//何回繰り返したかを足してる
-            var time_id=//一応クリアしてるのでidを所得
+            var time_id=//一応クリアするためにidを所得
             setTimeout(koredo.bind(this,num,this_room,time,time_id,next_num),5000);//また自分を呼び出してる
             return;
         }
@@ -381,12 +435,12 @@ function iscompret(this_room)//どこのルームか,次がどれかによって
     let comps=[];
     for(let num=0;num<this_room.memb_info.length;num++)//メンバー回繰り返す
     {
-        if(this_room.memb_info[num].compreat!==0)//compreatが0(終わった状態多分)になってなかったら1を返す
+        if(this_room.memb_info[num].compreat!==0)//compreatが0(終わった状態多分)になってなかった人の番号を配列に入れてる
         {  
             comps.push(num);
         }
     }
-    return comps;
+    return comps;//で、配列を返す
 }
 
 //待ちが終わって次何すればええんってやつすわ
@@ -423,10 +477,11 @@ function make_game(memb_name,jobs,room_name,msg)//メンバーの名前配列,�
     var new_room=new room();//ルームの元
     let info=new Array();//情報の元
     let room_numb=0;//ルームの番号
-    if(rooms.length!==0)//まぁ0以外だったらルームの番号はあれじゃけノゥ
+    if(rooms.length!==0)//0なら0、それ以外なら、+1(length出しやってない)
     {
-        room_numb=rooms.length;//。。。うまくいく保証はございませんですはい
+        room_numb=rooms.length;
     }
+    tohyo_logs.push("投票ログ\n　　　");
     for(let i=0; i<memb_name.length;i++)//メンバーの情報入力
     {
         info.push(make_info(memb_name[i],jobs,room_name,room_numb,msg,i));//入れる
@@ -434,9 +489,10 @@ function make_game(memb_name,jobs,room_name,msg)//メンバーの名前配列,�
     new_room.name=room_name;//ルームの名前
     new_room.memb_info=info;//メンバーの情報
     new_room.msg=msg;//スタートしたとこのmsg
-    new_room.killed=0;//ルームの名前
+    new_room.killed=-1;//ルームの名前
     new_room.saved=-1;//メンバーの情報
     new_room.isfin=0;//fisnishするかみたいな
+    new_room.turn=0;
     rooms.push(new_room);//ルームを入れるで
     return rooms[room_numb];//ややっこしいけどルームを返す
 }
@@ -445,6 +501,7 @@ function make_info(name,jobs,room_name,room_numb,msg,i)//名前,職業(数値),�
 {
     let jobs_num;//職業配列の長さを入れていい感じにランダムに取り出してんのかな？
     let job_num;//職業の番号
+    /** テストの時、職業を固定するため **/
     /*
     if(name==="キタムラ")
     {
@@ -459,13 +516,13 @@ function make_info(name,jobs,room_name,room_numb,msg,i)//名前,職業(数値),�
         jobs.splice(jobs_num,1);//自分の職業を削除してかぶりがないように
     //}
 
-    console.log(job_num,name);
+    //console.log(job_num,name);
     
     let info=new each_info();//新しい情報
     info.each_name=name;//名前
     info.compreat=1;//やることしました？な変数だよ
     info.msg_dm=msg;//あとでDMのmsgが入りますぜよ
-    info.touhyo=0;//投票する人の番号
+    info.touhyo=-1;//投票する人の番号
     info.each_jobs_numb=job_num;//職業の番号を入れてる
 
     all_name.push(name);//全員分の名前の入ってる配列へ名前を入れる
@@ -502,14 +559,13 @@ function set_jobs(memb_leng)//メンバーの人数
     return jobs_arry;//で、返すと
 }
 //誰か一人が死んじゃったときの関数、結構重要。
-function Death(this_room,number)//ルームの番号,何番目のプレイヤーか
+function Death(this_room,num)//ルームの番号,何番目のプレイヤーか
 {
-    let num =number;
     let where_all=0;
     let room_leng=0;
     for(let i=0;i<rooms.length;i++)
     {
-        if(this_room.name===rooms[i].name)
+        if(this_room.name===rooms[i].name)//thisroomが何番目のルームか探す
         {
             room_leng=i;
             break;
@@ -522,7 +578,7 @@ function Death(this_room,number)//ルームの番号,何番目のプレイヤー
     where_all+=num;
     //console.log("ああー",all_memb_ronu,where_all,num);
     //console.log("悪い",this_room.memb_info);
-    for(let i=0;i<this_room.memb_info.length-num;i++)
+    for(let i=0;i<(this_room.memb_info.length)-num;i++)
     {
       //  console.log("一応ねー",this_room.memb_info.length-num)
         all_memb_ronu[where_all+i].numb_inroom--;
@@ -538,14 +594,14 @@ function Death_hante(this_room,num)//ルームの番号,何番目のプレイヤ
     this_room.memb_info[num].msg_dm.send("あなたは死にました...");
     if(this_room.memb_info[num].each_jobs_numb===1)
     {
-        logs(this_room.msg,"村人の勝ちとなりますですはい");
+        logs(this_room.msg,"村人側の勝ちです！");
         Death(this_room,num);
         return false;
     }
     Death(this_room,num);
     if(isfin(this_room))
     {
-        logs(this_room.msg,"人狼の勝ちになりますですはい");
+        logs(this_room.msg,"人狼側の勝ちです！");
         return false;
     }
     return true;
@@ -571,6 +627,7 @@ function finish(this_room)
 {
     let msg=this_room.msg;
     let name=this_room.name;
+    logs(tohyo_logs[this_room.msg,this_room.memb_info[0].room_numb]);
     //console.log(this_room.memb_info,all_name);
     let startpos=all_memb_ronu[all_name.indexOf(this_room.memb_info[0].each_name)].room_numb;
     let membs=this_room.memb_info.length;
@@ -592,7 +649,6 @@ function finish(this_room)
     }
     rooms.splice(startpos,1);
     logs(msg,"ゲーム「"+name+"」は終了しました。");
-    console.log(all_name,all_memb_ronu,rooms,membs);
 }
 
 
@@ -638,7 +694,7 @@ function set_tohyo(user_name,num)//投票する人の名前,指定した番号
 {
     let this_room=get_room_byna(user_name);
     let who=all_name.indexOf(user_name);//ユーザーが何番目か
-    this_room.memb_info[all_memb_ronu[who].numb_inroom].touhyo=num;//投票の番号を頑張って指定
+    this_room.memb_info[all_memb_ronu[who].numb_inroom].touhyo=num-1;//投票の番号を頑張って指定
     this_room.memb_info[all_memb_ronu[who].numb_inroom].compreat=0; //投票終わりましたよ！
 }
 //スタートから、DMをもらってるとこ
@@ -661,11 +717,11 @@ function reiga_syo_yoru_tohyo(msg,user_name,name_num,comp_num)//msg,ユーザー
     if(isplay(user_name))//ゲームに参加しているか
     {
         let who=all_name.indexOf(user_name);
-        if(comp_num===rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom].compreat)//夜の時の判定をやっているとしたら今は夜か
+        if(comp_num===rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom].compreat)//夜のコマンドをもらったとしたら今は夜か
         {
-            if(comp_num===2&&(what_job(user_name)===0||what_job(user_name)===4))//投票中かつ村人か狂人
+            if(comp_num===2&&(what_job(user_name)===0||what_job(user_name)===4))//夜かつ村人か狂人
             {
-                logs(msg,"あなたの役職では夜にやることはありません。");   
+                logs(msg,"あなたの役職では夜にやることはありません、しばらくお待ちください。");   
                 return false;
             }
             if(isFinite(name_num)&&name_num%1==0)//小数点なしの数字か
@@ -698,7 +754,7 @@ function reiga_syo_yoru_tohyo(msg,user_name,name_num,comp_num)//msg,ユーザー
         */
             if(rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom].compreat===0)
             {
-                logs(msg,"しばらくお待ちください。");//なんか暇してソウだったらこれでごまかす
+                logs(msg,"しばらくお待ちください。");//投票終わった人とか、自分だけ、夜に選択し忘れて時とか
             }
             else
             {
@@ -715,17 +771,25 @@ function reiga_syo_yoru_tohyo(msg,user_name,name_num,comp_num)//msg,ユーザー
 //jinrou_bot startって言われた時用の例外処理系
 function reiga_syo_start(msg,user_name)//msg,ユーザーの名前,設定した番号,今夜なのかとか
 {
-    let who=all_name.indexOf(user_name);
-    console.log(rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom]);
-    if(rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom].compreat===1)//スタートの回答を求めているのか
+    if(isplay(user_name))
     {
-        return true;        
+        let who=all_name.indexOf(user_name);
+        if(rooms[all_memb_ronu[who].room_numb].memb_info[all_memb_ronu[who].numb_inroom].compreat===1)//スタートの回答を求めているのか
+        {
+            return true;        
+        }
+        else
+        {
+            logs(msg,"あなたはもうすでにゲームに参加しています。");//人狼とかが投票中にnightか夜にtohyoがきたらこれ
+            return false;
+        }    
     }
     else
     {
-        logs(msg,"あなたはもうすでにゲームに参加しています。");//人狼とかが投票中にnightか夜にtohyoがきたらこれ
+        let message="誘われているゲームがありません。";
+        logs(msg,message);
         return false;
-    }    
+    }
 }
 function reiga_syo_finish(msg,room_name,user_name)//msg,ユーザーの名前,設定した番号,今夜なのかとか
 {
@@ -750,7 +814,7 @@ function reiga_syo_game_start(msg,memb_name,room_name)//msg,ユーザーの名�
     }
     else if(memb_name.length>7)
     {
-        logs(msg,"(そこまで人狼に詳しくない作者の考える)推奨プレイ人数は、三人以上七名以下です。\nこのままだと、編成が「人狼×１、占い師×１、狩人×１、狂人×１、村人×"+(memb_name.length-4)+"」となります。\nこれでも良ければこのままお楽しみください。\nもし、メンバーを分ける場合は、「jinro-bot finish(ゲームの名前)」のように言って、このゲームを終了してからにしてください。")
+        logs(msg,"(そこまで人狼に詳しくない作者の考える)推奨プレイ人数は、三人以上七名以下です。\nこのままだと、編成が「人狼×１、占い師×１、狩人×１、狂人×１、村人×"+(memb_name.length-4)+"」となります。\nこれでも良ければこのままお楽しみください。\nもし、メンバーを分ける場合は、「人狼bot finish(ゲームの名前)」のように言って、このゲームを終了してからにしてください。")
     }
     for(let i=0;i<memb_name.length;i++)
     {
@@ -784,28 +848,19 @@ function command_gamestart(msg,memb_name,room_str)
     {
         start(memb_name,room_str,msg);
     }
+    return;
 }
 function command_start(msg,user_name)
 {
-    if(isplay(user_name))
-    {
-        console.log(isplay(user_name)+"うむ"+all_name);
-        if(reiga_syo_start(msg,user_name))
-        {    
-            start_go(user_name,msg);
-            logs(msg,"あなたは"+jobs[what_job(user_name)]+"です。");
-            logs(msg,jobs_setu[what_job(user_name)]);
-        }
-        return;
+    if(reiga_syo_start(msg,user_name))
+    {    
+        start_go(user_name,msg);
+        let myjob=what_job(user_name);
+        logs(msg,"あなたは"+jobs[myjob]+"です。");
+        logs(msg,jobs_setu[myjob]);
     }
-    else
-    {
-        console.log(user_name+"うひ");
-        let message="誘われているゲームがありません。";
-        msg.send(message);
-        return;
-    }
-}
+    return;
+  }
 function command_night(msg,user_name,name_num)
 {
     if(reiga_syo_yoru_tohyo(msg,user_name,name_num,2))
@@ -832,11 +887,8 @@ function command_night(msg,user_name,name_num)
         else if(jobs[what_job(user_name)]==="狩人")
         {
             set_saved(user_name,name_num);
-            if(name_num>0&&name_num%1==0)
-            {
-                let message="対象を設定しました:"+all_name[name_num-1];
-                msg.send(message);
-            } 
+            let message="対象を設定しました:"+all_name[name_num-1];
+            msg.send(message);
         }
         else
         {
@@ -844,6 +896,7 @@ function command_night(msg,user_name,name_num)
             msg.send(message);
         }
     }
+    return;
 }
 function command_tohyo(msg,user_name,name_num)
 {
@@ -864,6 +917,7 @@ function command_tohyo(msg,user_name,name_num)
             msg.send(message);
         }  
     }
+    return;
 }
 function command_finish(msg,name_room,user_name)
 {
@@ -871,8 +925,13 @@ function command_finish(msg,name_room,user_name)
     {
         let this_room=get_room_byna(user_name);
         this_room.isfin=1;//何回か繰り返してやるやつで判定するために4それだけだな
-        logs(msg,"終了まで時間がかかる可能性があります。\nまた、終了しないと、別のゲームに参加できません。ご了承ください。");
+        logs(msg,"終了まで時間がかかる可能性があります。\nまた、完全に終了しないと、別のゲームに参加できません。ご了承ください。");
     }
+    return;
+}
+function command_help(msg)
+{
+    msg.send(help_message);
 }
 
 
@@ -897,7 +956,7 @@ module.exports = robot => {
         var room_str = msg.match[2].trim();//ルームの名前
         command_gamestart(msg,memb_name,room_str);//ここで例外処理その他してstart
     });
-    robot.hear(/start/i, msg => 
+    robot.hear(/st/i, msg => 
     {
         let user_name=msg.message.user.slack.profile.display_name;
         command_start(msg,user_name);
@@ -914,14 +973,14 @@ module.exports = robot => {
         let name_num=msg.match[1].trim();
         command_tohyo(msg,user_name,name_num);
     })
-    robot.hear(/test(.+)/i,msg=>
-    {
-        logs(msg,"テスト");
-    })
     robot.respond(/finish (.+)/i,msg=>
     {
         let user_name=msg.message.user.slack.profile.display_name;
         let name_room=msg.match[1].trim();
         command_finish(msg,name_room,user_name);
+    })
+    robot.hear(/help/i,msg=>
+    {
+        command_help(msg);
     })
 };
