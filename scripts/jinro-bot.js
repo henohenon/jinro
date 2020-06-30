@@ -26,6 +26,12 @@ let help_message=
 +"・４、(朝)そして、全員botとのDMで「jt(数字)」(例：j52)と言って、投票してください。\n"
 +"・５、(夜)そのあと、特殊な職業の人はbotとのDMで「jn(数字)」(例：jn4)のように言ってください。\n"
 +"・４、５を繰り返します。\n"
++"役職一覧\n"
++"・村人：村人側の役職です。特殊能力などはありません。手元にある情報を元に人狼は誰か推理しましょう。\n",
++"・占い師：村人側の役職です。夜のターンで、一人占って人狼かどうかを知ることができます。人狼か、そうでないかしか占えないので、占い先が役職持ち(狂人や騎士)であっても、村人としかわかりません。\n",
++"・狩人：村人側の役職です。夜のターンで、誰か一人を人狼の襲撃から守ることができます。狩人が守っている人を人狼が襲撃した場合、襲撃は失敗し、翌日犠牲者は発生しません。\n",
++"・人狼：人狼側の役職です。夜のターンで、誰か一人を襲撃して殺します。人狼は人間に、1対1では勝てるものの、相手が村人2名だと勝てません。よって、村人に人狼だと悟られないようにうまく立ち回り、人が残り一人になるまで夜のターンでこっそり人を殺していきましょう。\n",
++"・狂人：人狼側の役職です。素性は村人ですが、人狼に加担する人です。人狼サイドが勝利することで、自分が死んでも狂人も勝利となります。占い師に占われても村人と判断されます。だれが人狼なのかを知ることはできません。\n"
 +"コマンド一覧\n"
 +"・「人狼bot game_create メンバーの表示名,メンバーの表示名,メンバーの表示名... ルームの名前」\n"
 +"　　　...ルームを建てるコマンド、普通のチャンネルで行う、スレッド推奨\n"
@@ -43,7 +49,7 @@ let help_message=
 +"・このbotは、多人数プレイには向いていません。4〜6人ぐらいが最も楽しめると思います。\n"
 +"・また、botのコメント数には限界がありますので、5ルームとか建てるのは、やめてください。\n"
 +"・ルームを建てるときは、メンションではなく、表示名でお願いします。また、コピペだとリンクと太文字がついてしまうので、リンクを削除して太文字を解除(「,」とかにリンクが残らないか注意です)するか、一つ一つ入力してください。\n"
-+"※これバグじゃね？みたいなのがあれば、お手数ですが、作者へのDMか何かで知らせていただけるとありがたいです。(「キタ」ぐらいで検索して、へのへのもへじっぽいアイコンのやつがいれば、だいたいそいつです。)"
++"※これバグじゃね？みたいなの(こここうして欲しい！でもok)があれば、お手数ですが、作者へのDMか何かで知らせていただけるとありがたいです！(「キタ」ぐらいで検索して、へのへのもへじっぽいアイコンのやつがいれば、だいたいそいつです。)"
 function memb_ronu()//all_memb_rinuの中身
 {
     room_name:"";//ルームの名前
@@ -80,7 +86,7 @@ let jobs_setu=//その職業の説明
 let all_memb_ronu=new Array();//ありとあらゆるルームに所属する人の情報とどこのルームに入ってるかが入ってる:memb_ronu
 let all_name=new Array();//全員の名前だけの入れる:string
 let rooms=new Array();//ルームシステムうまくいく保証がなさすぎてやばい:room
-let tohyo_logs=new Array();//投票系封印もれで、エラーが出たら嫌なので、一応生かしとく
+let tohyo_logs=new Array();
 
 
 /*** この辺はスタートから一連の処理 ***/
@@ -106,12 +112,10 @@ function start(memb_name,room_name,msg)//メンバーの名前変数,スター�
     }
     logs(this_room.msg,"では、"+memb_name.join("さん、")+"さんの"+memb_name.length
     +"人でゲーム:「"+room_name+"」を始めます。\n全員人狼botとのDMを開き、2分以内に「st」と言ってください\n編成は、「"+job_names.join("、")+"」です");//はじめまっせーって
-  /**  
-  for (let i=0; i<job.length;i++)
+    for (let i=0; i<job.length;i++)
     {
         tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].each_name+"＝"+jobs[job[i]]+"、"+i;
-    }投票系の封印
-    **/
+    }
     tohyo_logs[this_room.memb_info[0].room_numb]+="\n初夜：   "
     let time=24;//2分ぐらい待たせるつもり
     var timeout_id=
@@ -332,7 +336,7 @@ function tohyo(this_room)//ルーム
         if(this_room.memb_info[i].touhyo>-1)
         {
             mems[this_room.memb_info[i].touhyo]+=1;//集計
-            //tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].touhyo+"      ";投票ログ用。いったん封印
+            tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].touhyo+"      ";
             if(No_tohyo<mems[this_room.memb_info[i].touhyo])//ランクのやつを上手い具合にしてる
             {
                 No_one=this_room.memb_info[i].touhyo;//なんばーわん
@@ -345,7 +349,7 @@ function tohyo(this_room)//ルーム
     logs(this_room.msg,this_room.memb_info[No_one].each_name+"さんです。");
     if(Death_hante(this_room,No_one)===true)
     {
-        //tohyo_logs[this_room.memb_info[0].room_numb]+="\n"+(this_room.turn+1)+"夜：　";投票ログ系は封殺！、まぁ最後に吐かなきゃエラーは出てないのでワンちゃんやらなくてもいい
+        tohyo_logs[this_room.memb_info[0].room_numb]+="\n"+(this_room.turn+1)+"夜：　";
         start_yoru(this_room);//ゲームが終わらないなら、また夜に戻ります。
     }
     else
@@ -483,7 +487,7 @@ function make_game(memb_name,jobs,room_name,msg)//メンバーの名前配列,�
     {
         room_numb=rooms.length;
     }
-    //tohyo_logs.push("投票ログ\n　　　");投票ログを作る気だったけど、いったん申請するので削除
+    tohyo_logs.push("投票ログ\n　　　");
     for(let i=0; i<memb_name.length;i++)//メンバーの情報入力
     {
         info.push(make_info(memb_name[i],jobs,room_name,room_numb,msg,i));//入れる
@@ -629,7 +633,7 @@ function finish(this_room)
 {
     let msg=this_room.msg;
     let name=this_room.name;
-    //logs(tohyo_logs[this_room.msg,this_room.memb_info[0].room_numb]);とりあえず、投票ログは封印
+    logs(tohyo_logs[this_room.msg,this_room.memb_info[0].room_numb]);
     //console.log(this_room.memb_info,all_name);
     let startpos=all_memb_ronu[all_name.indexOf(this_room.memb_info[0].each_name)].room_numb;
     let membs=this_room.memb_info.length;
