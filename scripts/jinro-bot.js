@@ -80,7 +80,7 @@ let jobs_setu=//その職業の説明
 let all_memb_ronu=new Array();//ありとあらゆるルームに所属する人の情報とどこのルームに入ってるかが入ってる:memb_ronu
 let all_name=new Array();//全員の名前だけの入れる:string
 let rooms=new Array();//ルームシステムうまくいく保証がなさすぎてやばい:room
-let tohyo_logs=new Array();
+let tohyo_logs=new Array();//投票系封印もれで、エラーが出たら嫌なので、一応生かしとく
 
 
 /*** この辺はスタートから一連の処理 ***/
@@ -106,10 +106,12 @@ function start(memb_name,room_name,msg)//メンバーの名前変数,スター�
     }
     logs(this_room.msg,"では、"+memb_name.join("さん、")+"さんの"+memb_name.length
     +"人でゲーム:「"+room_name+"」を始めます。\n全員人狼botとのDMを開き、2分以内に「st」と言ってください\n編成は、「"+job_names.join("、")+"」です");//はじめまっせーって
-    for (let i=0; i<job.length;i++)
+  /**  
+  for (let i=0; i<job.length;i++)
     {
         tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].each_name+"＝"+jobs[job[i]]+"、"+i;
-    }
+    }投票系の封印
+    **/
     tohyo_logs[this_room.memb_info[0].room_numb]+="\n初夜：   "
     let time=24;//2分ぐらい待たせるつもり
     var timeout_id=
@@ -330,7 +332,7 @@ function tohyo(this_room)//ルーム
         if(this_room.memb_info[i].touhyo>-1)
         {
             mems[this_room.memb_info[i].touhyo]+=1;//集計
-            tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].touhyo+"      ";
+            //tohyo_logs[this_room.memb_info[0].room_numb]+=this_room.memb_info[i].touhyo+"      ";投票ログ用。いったん封印
             if(No_tohyo<mems[this_room.memb_info[i].touhyo])//ランクのやつを上手い具合にしてる
             {
                 No_one=this_room.memb_info[i].touhyo;//なんばーわん
@@ -343,7 +345,7 @@ function tohyo(this_room)//ルーム
     logs(this_room.msg,this_room.memb_info[No_one].each_name+"さんです。");
     if(Death_hante(this_room,No_one)===true)
     {
-        tohyo_logs[this_room.memb_info[0].room_numb]+="\n"+(this_room.turn+1)+"夜：　";
+        //tohyo_logs[this_room.memb_info[0].room_numb]+="\n"+(this_room.turn+1)+"夜：　";投票ログ系は封殺！、まぁ最後に吐かなきゃエラーは出てないのでワンちゃんやらなくてもいい
         start_yoru(this_room);//ゲームが終わらないなら、また夜に戻ります。
     }
     else
@@ -481,7 +483,7 @@ function make_game(memb_name,jobs,room_name,msg)//メンバーの名前配列,�
     {
         room_numb=rooms.length;
     }
-    tohyo_logs.push("投票ログ\n　　　");
+    //tohyo_logs.push("投票ログ\n　　　");投票ログを作る気だったけど、いったん申請するので削除
     for(let i=0; i<memb_name.length;i++)//メンバーの情報入力
     {
         info.push(make_info(memb_name[i],jobs,room_name,room_numb,msg,i));//入れる
@@ -627,7 +629,7 @@ function finish(this_room)
 {
     let msg=this_room.msg;
     let name=this_room.name;
-    logs(tohyo_logs[this_room.msg,this_room.memb_info[0].room_numb]);
+    //logs(tohyo_logs[this_room.msg,this_room.memb_info[0].room_numb]);とりあえず、投票ログは封印
     //console.log(this_room.memb_info,all_name);
     let startpos=all_memb_ronu[all_name.indexOf(this_room.memb_info[0].each_name)].room_numb;
     let membs=this_room.memb_info.length;
